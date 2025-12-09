@@ -1,3 +1,4 @@
+import ssl
 from ldap3 import *
 from src.controllers.auth.user import User
 from src.controllers.auth.config import config_data
@@ -13,10 +14,12 @@ def get_server():
     """
     try:
         if 'ldap' not in g:
-            g.ldap = Server(config_data['server'], use_ssl=True)
+            tls = Tls(validate=ssl.CERT_REQUIRED, version=ssl.PROTOCOL_TLSv1_2)
+            g.ldap = Server(config_data['server'], use_ssl=False, tls=tls, port=389)
         return g.ldap
-    except:
-        return Server(config_data['server'], use_ssl=True)
+    except Exception as e:
+        print(str(e))
+        return Server(config_data['server'], use_ssl=False)
 
 
 def check_credentials(user_id, password):
@@ -30,7 +33,9 @@ def check_credentials(user_id, password):
 
     server = get_server()
     try:
-        Connection(server, user=user_id + config_data['suffix'], password=password, auto_bind=True)
+        conn = Connection(server, user=user_id + config_data['suffix'], password=password, auto_bind=AUTO_BIND_TLS_BEFORE_BIND)
+        conn.start_tls()
+        conn.bind()
         return True
     except:
         return False
