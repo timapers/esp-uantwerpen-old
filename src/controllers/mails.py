@@ -15,12 +15,13 @@ def admin_mail():
 
 @bp.route('/mail', methods=['POST'])
 def mail():
-    first_name = request.json["first-name"]
-    last_name = request.json["last-name"]
-    role = request.json["role"]
-    message = request.json["message"]
-    send_contact_message(first_name, last_name, role, message)
-    return jsonify({'success': True}), 200, {'ContentType': 'application/json'}
+    return jsonify({'error': 'Route disabled'}), 404
+    #first_name = request.json["first-name"]
+    #last_name = request.json["last-name"]
+    #role = request.json["role"]
+    #message = request.json["message"]
+    #send_contact_message(first_name, last_name, role, message)
+    #return jsonify({'success': True}), 200, {'ContentType': 'application/json'}
 
 
 @bp.route('/admin-mail', methods=['POST'])
