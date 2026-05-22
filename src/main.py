@@ -102,6 +102,8 @@ def before_request():
 @login_manager.user_loader
 def load_user(user_id):
     u = ldap.get_user(user_id)
+    if u is None:
+        return None
     extra_admins = config_data.get('student-admins', [])
     if user_id in extra_admins:
         u.role = 'admin'

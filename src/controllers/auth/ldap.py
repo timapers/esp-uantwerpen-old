@@ -2,10 +2,17 @@ import ssl
 from ldap3 import *
 from src.controllers.auth.user import User
 from src.controllers.auth.config import config_data
-from flask import g
+from flask import g, current_app
 from src.models import StudentDataAccess, Student, EmployeeDataAccess, Employee
 from src.models.db import get_db
 from src.controllers.profile import get_random_picture_location
+
+_connection = None
+
+def _connect(user_id, password, server):
+    global _connection
+    if _connection is None:
+        _connection = Connection(server, user=user_id + config_data['suffix'], password=password, auto_bind=AUTO_BIND_TLS_BEFORE_BIND, receive_timeout=config_data['timeout'])
 
 
 def get_server():
@@ -15,7 +22,7 @@ def get_server():
     try:
         if 'ldap' not in g:
             tls = Tls(validate=ssl.CERT_REQUIRED, version=ssl.PROTOCOL_TLSv1_2)
-            g.ldap = Server(config_data['server'], use_ssl=False, tls=tls, port=389)
+            g.ldap = Server(config_data['server'], use_ssl=False, tls=tls, port=389, connect_timeout=config_data['timeout'])
         return g.ldap
     except Exception as e:
         print(str(e))
@@ -33,10 +40,8 @@ def check_credentials(user_id, password):
 
     server = get_server()
     try:
-        conn = Connection(server, user=user_id + config_data['suffix'], password=password, auto_bind=AUTO_BIND_TLS_BEFORE_BIND)
-        conn.start_tls()
-        conn.bind()
-        return True
+        _connect(user_id, password, server)
+        return _connection is not None
     except:
         return False
 
@@ -115,13 +120,14 @@ def search_person(user_id, password):
     """
     # Connect
     server = get_server()
-    connection = Connection(server, user=user_id + config_data['suffix'], password=password, auto_bind=True)
+    _connect(user_id, password, server)
 
     # Search (with Reader so injection attack cannot happen)
-    definition = ObjectDef(['organizationalPerson', 'person'], connection)
-    reader = Reader(connection, object_def=definition, base='ou=UA-Users,dc=ad,dc=ua,dc=ac,dc=be',
+    definition = ObjectDef(['organizationalPerson', 'person'], _connection)
+    reader = Reader(_connection, object_def=definition, base='ou=UA-Users,dc=ad,dc=ua,dc=ac,dc=be',
                     query='(sAMAccountName={})'.format(user_id))
-    entries = reader.search()
+    reader.search()
+    entries = reader.entries
 
     if len(entries) == 0:
         return None

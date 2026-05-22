@@ -21,6 +21,8 @@ def login():
             return render_template('login.html', form=form, error="Invalid username or password")
 
         user = get_user(user_id, password)
+        if user is None:
+            return render_template('login.html', form=form, error="Cannot find user")
         login_user(user)
 
         if user.is_new:
